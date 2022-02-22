@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Unadversarial Purification – Demo</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Break neural networks in your browser.">
+    <link rel="shortcut icon" href="data/favicon.ico" />
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/skeleton.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-C02BRW1FMK"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-C02BRW1FMK');
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <div id="header" class="row">
+        <div id="logo"><a href="."><h1>Unadversarial Purification Demo</h1></a></div>
+        <!-- <div id="nav" class="one-half column">
+          <a href="." class="active">Intro</a>&ensp;·&ensp;<a href="examples.html">Examples</a>&ensp;·&ensp;<a href="faq.html">FAQ</a>&ensp;·&ensp;<a href="api.html">API</a>&ensp;·&ensp;<a href="https://github.com/kennysong/adversarial.js" target="_blank">GitHub</a>
+        </div> -->
+      </div>
+
+      <div id="chrome-banner" class="warning-banner">⚠️ It looks like you're not using Google Chrome. This demo <strong>may not work properly</strong>. If it breaks, please try in Google Chrome.</div>
+      <div id="mobile-banner" class="error-banner">⚠️ It looks like you're on a mobile device without 32-bit WebGL. The demo <strong>will not work properly</strong>. Please try on desktop Google Chrome.</div>
+
+      <!-- <div id="banner">A library for improving adversarial robustness of pre-trained classifiers.</div> -->
+
+      <div id="dashboard">
+        <div id="top-row" class="row border-bottom">
+          <div class="center">Everything runs client-side – there is no server! Try the demo:</div>
+        </div>
+
+        <div class="row border-bottom">
+          <span id="select-model-label">Select a model:&nbsp;</span>
+          <select id="select-model">
+            <option value="" selected disabled>Select model</option>
+            <option value="cifar">CIFAR-10 (object recognition)</option>
+            <!-- <option value="imagenet">ImageNet (object recognition, large)</option> -->
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="one-third column border-right">
+            <div id="original-image-overlay" class="overlay"></div>
+            <h5 class="center">Original Image</h5>
+          </div>
+          <div class="one-third column border-right">
+            <div id="adversarial-image-overlay" class="overlay"></div>
+            <h5 class="center">Adversarial Image</h5>
+          </div>
+          <div class="one-third column">
+            <div id="denoised-image-overlay" class="overlay"></div>
+            <h5 class="center">Purified Image</h5>
+          </div>
+        </div>
+
+        <div class="row border-bottom">
+          <div class="one-third column split center">
+            <div id="original-canvas-overlay" class="overlay"></div>
+            <div class="split">
+              <canvas id="original" class="tableimg" width="224" height="224"></canvas>
+            </div>
+            <div class="split">
+              <button id="next-image">Next Image ⟳</button>
+            </div>
+          </div>
+
+          <div class="one-third column split center border-right border-left">
+            <div id="adversarial-canvas-overlay" class="overlay"></div>
+            <div class="split">
+              <canvas id="adversarial" class="tableimg" width="224" height="224"></canvas>
+              <canvas id="adversarial-noise" class="tableimg" width="224" height="224"></canvas>
+            </div>
+            <div class="split">
+              <label for="select-target">Turn this image into a:</label>
+              <select id="select-target" class="u-part-width" data-model="mnist">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+              </select>
+
+              <label for="select-attack">Select an attack:</label>
+              <select id="select-attack" class="u-part-width">
+                <option value="cw">Carlini & Wagner (strongest)</option>
+                <option value="jsma">Jacobian-based Saliency Map Attack (stronger)</option>
+                <option value="jsmaOnePixel">Jacobian-based Saliency Map Attack 1-Pixel (stronger)</option>
+                <option value="bimTargeted">Basic Iterative Method (stronger)</option>
+                <option value="fgsmTargeted">Fast Gradient Sign Method (weak)</option>
+              </select>
+
+              <div class="center">
+                <button id="generate-adv" class="button-primary">Generate</button>
+                <div id="latency-msg">This will take a few seconds.</div>
+                <div id="difference">Can you see the difference? <a id="view-noise">View noise.</a></div>
+                <div id="difference-noise">Noise is magnified. <a id="view-image">View image.</a></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="one-third column split center">
+            <div id="denoised-canvas-overlay" class="overlay"></div>
+            <div class="split">
+              <canvas id="denoised" class="tableimg" width="224" height="224"></canvas>
+              <canvas id="masked" class="tableimg" width="224" height="224"></canvas>
+            </div>
+            <div class="split">
+              <div class="center">
+                <button id="generate-denoised" class="button-primary">Generate</button>
+                <div id="latency-denoised-msg">This will take a few seconds.</div>
+                <div id="difference-denoised">Has it recovered the original image? <a id="view-masked">View masked image.</a></div>
+                <div id="difference-masked">Half of pixels are masked. <a id="view-denoised">View purified image.</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row center" style="display:flex;"> <!-- The flex here keeps the child columns the same height -->
+          <div class="one-third column border-right">
+            <div id="original-prediction-overlay" class="overlay"></div>
+            <h5>Prediction</h5>
+            <button id="predict-original" class="button-primary">Run Neural Network</button>
+            <div id="prediction"></div>
+            <div id="prediction-status"></div>
+          </div>
+          <div class="one-third column border-right">
+            <div id="adversarial-prediction-overlay" class="overlay"></div>
+            <h5>Prediction</h5>
+            <button id="predict-adv" class="button-primary" disabled>Click "Generate" First</button>
+            <div id="prediction-adv"></div>
+            <div id="prediction-adv-status"></div>
+          </div>
+          <div class="one-third column">
+            <div id="denoised-prediction-overlay" class="overlay"></div>
+            <h5>Prediction</h5>
+            <button id="predict-denoised" class="button-primary" disabled>Click "Generate" First</button>
+            <div id="prediction-denoised"></div>
+            <div id="prediction-denoised-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hack to load a sample of ImageNet images that we can access in canvas -->
+    <img class="0" style="display:none;">
+    <img class="1" style="display:none;">
+    <img class="2" style="display:none;">
+    <img class="3" style="display:none;">
+    <img class="4" style="display:none;">
+    <img class="5" style="display:none;">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.7.0/dist/tf.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.0.4"></script>
+    <script src="js/intro.js" type="module"></script>
+  </body>
+</html>
