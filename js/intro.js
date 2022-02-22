@@ -1,5 +1,5 @@
 import {fgsmTargeted, bimTargeted, jsmaOnePixel, jsma, cw} from './adversarial.js';
-import {CIFAR_CLASSES, IMAGENET_CLASSES} from './class_names.js';
+import {CIFAR_CLASSES} from './class_names.js';
 import {vote_with_masks, vote_with_noises} from './vote.js';
 
 
@@ -33,13 +33,6 @@ const CIFAR_CONFIGS = {
   'cw': {c: 1, λ: 0.05}  // Tried to minimize distortion, but not sure it worked
 };
 
-const IMAGENET_CONFIGS = {
-  'fgsm': {ε: 0.05},  // 0.1 L_inf perturbation is too visible in color
-  'fgsmTargeted': {loss: 1},  // The 2nd loss function is too heavy for ImageNet
-  'jsmaOnePixel': {ε: 75},  // This is unsuccessful. I estimate that it requires ~50x higher ε than CIFAR-10 to be successful on ImageNet, but that is too slow
-  'cw': {κ: 5, c: 1, λ: 0.05}  // Generate higher confidence adversarial examples, and minimize distortion
-};
-
 /************************************************************************
 * Load Datasets
 ************************************************************************/
@@ -56,45 +49,7 @@ let loadingCifarX = fetch(cifarXUrl).then(res => res.json()).then(arr => cifarX 
 let loadingCifarY = fetch(cifarYUrl).then(res => res.json()).then(arr => cifarY = tf.data.array(arr).batch(1));
 let loadingCifar = Promise.all([loadingCifarX, loadingCifarY]).then(() => tf.data.zip([cifarX, cifarY]).toArray()).then(ds => cifarDataset = ds.map(e => { return {xs: e[0], ys: e[1]}}));
 
-/****************************** Load ImageNet ******************************/
 
-let imagenetXUrls = [
-  'data/imagenet/574_golf_ball.jpg',
-  'data/imagenet/217_english_springer.jpg',
-  'data/imagenet/701_parachute.jpg',
-  'data/imagenet/0_tench.jpg',
-  'data/imagenet/497_church.jpg',
-  'data/imagenet/566_french_horn.jpg'
-]
-let imagenetYLbls = [574, 217, 701, 0, 497, 566]
-let imagenetY = imagenetYLbls.map(lbl => tf.oneHot(lbl, 1000).reshape([1, 1000]));
-
-// Utility function that loads an image in a given <img> tag and returns a Promise
-function loadImage(e, url) {
-  return new Promise((resolve) => {
-    e.addEventListener('load', () => resolve(e));
-    e.src = url;
-  });
-}
-
-// Load each image
-let loadingImagenetX = [];
-for (let i = 0; i < imagenetXUrls.length; i++) {
-  document.getElementsByClassName(i.toString()).forEach(e => {
-    let loadingImage = loadImage(e, imagenetXUrls[i]);
-    loadingImagenetX.push(loadingImage);
-  });
-}
-
-// Collect pixel data from each image
-let imagenetX = [];
-let loadedImagenetData = Promise.all(loadingImagenetX);
-loadedImagenetData.then(() => {
-  for (let i = 0; i < imagenetXUrls.length; i++) {
-    let img = document.getElementsByClassName(i.toString())[0];
-    imagenetX.push(tf.browser.fromPixels(img).div(255.0).reshape([1, 224, 224, 3]));
-  }
-});
 
 /************************************************************************
 * Load Models
@@ -110,27 +65,6 @@ async function loadCifarModel() {
 }
 
 
-/****************************** Load ImageNet ******************************/
-
-let imagenetModel;
-async function loadImagenetModel() {
-  if (imagenetModel !== undefined) { return; }
-  imagenetModel = await mobilenet.load({version: 2, alpha: 1.0});
-
-  // Monkey patch the mobilenet object to have a predict() method like a normal tf.LayersModel
-  imagenetModel.predict = function (img) {
-    return this.predictLogits(img).softmax();
-  }
-
-  // Also monkey patch the mobilenet object with a method to predict logits
-  imagenetModel.predictLogits = function (img) {
-    // Remove the first "background noise" logit
-    // Copied from: https://github.com/tensorflow/tfjs-models/blob/708e3911fb01d0dfe70448acc3e8ca736fae82d3/mobilenet/src/index.ts#L232
-    const logits1001 = this.model.predict(img);
-    return logits1001.slice([0, 1], [-1, 1000]);
-  }
-}
-
 
 
 /************************************************************************
@@ -144,28 +78,6 @@ async function loadCifarDenoisedModel() {
   if (cifarDenoisedModel !== undefined) { return; }
   cifarDenoisedModel = await tf.loadLayersModel('data/denoiser/cifar10_denoiser_mask.json');
 }
-
-/****************************** Load ImageNet ******************************/
-
-let imagenetDenoisedModel;
-async function loadImagenetDenoisedModel() {
-  if (imagenetDenoisedModel !== undefined) { return; }
-  imagenetDenoisedModel = await mobilenet.load({version: 2, alpha: 1.0});
-
-  // Monkey patch the mobilenet object to have a predict() method like a normal tf.LayersModel
-  imagenetDenoisedModel.predict = function (img) {
-    return this.predictLogits(img).softmax();
-  }
-
-  // Also monkey patch the mobilenet object with a method to predict logits
-  imagenetDenoisedModel.predictLogits = function (img) {
-    // Remove the first "background noise" logit
-    // Copied from: https://github.com/tensorflow/tfjs-models/blob/708e3911fb01d0dfe70448acc3e8ca736fae82d3/mobilenet/src/index.ts#L232
-    const logits1001 = this.model.predict(img);
-    return logits1001.slice([0, 1], [-1, 1000]);
-  }
-}
-
 
 
 /************************************************************************
@@ -231,18 +143,14 @@ $('#view-denoised').addEventListener('click', viewDenoised);
  * Renders the next image from the sample dataset in the original canvas
  */
 function showNextImage() {
-  let modelName = $('#select-model').value;
-  if (modelName === 'cifar') { showNextCifar(); }
-  else if (modelName === 'imagenet') { showNextImagenet(); }
+  showNextCifar();
 }
 
 /**
  * Renders the current image from the sample dataset in the original canvas
  */
 function showImage() {
-  let modelName = $('#select-model').value;
-  if (modelName === 'cifar') { showCifar(); }
-  else if (modelName === 'imagenet') { showImagenet(); }
+  showCifar();
 }
 
 /**
@@ -252,17 +160,10 @@ async function predict() {
   $('#predict-original').disabled = true;
   $('#predict-original').innerText = 'Loading...';
 
-  let modelName = $('#select-model').value;
-  if (modelName === 'cifar') {
-    await loadCifarModel();
-    await loadingCifar;
-    let lblIdx = cifarDataset[cifarIdx].ys.argMax(1).dataSync()[0];
-    _predict(cifarModel, cifarDataset[cifarIdx].xs, lblIdx, CIFAR_CLASSES);
-  } else if (modelName === 'imagenet') {
-    await loadImagenetModel();
-    await loadedImagenetData;
-    _predict(imagenetModel, imagenetX[imagenetIdx], imagenetYLbls[imagenetIdx], IMAGENET_CLASSES);
-  }
+  await loadCifarModel();
+  await loadingCifar;
+  let lblIdx = cifarDataset[cifarIdx].ys.argMax(1).dataSync()[0];
+  _predict(cifarModel, cifarDataset[cifarIdx].xs, lblIdx, CIFAR_CLASSES);
 
   $('#predict-original').innerText = 'Run Neural Network';
 
@@ -298,17 +199,10 @@ async function generateAdv() {
     case 'cw': attack = cw; break;
   }
 
-  let modelName = $('#select-model').value;
   let targetLblIdx = parseInt($('#select-target').value);
-  if (modelName === 'cifar') {
-    await loadCifarModel();
-    await loadingCifar;
-    await _generateAdv(cifarModel, cifarDataset[cifarIdx].xs, cifarDataset[cifarIdx].ys, CIFAR_CLASSES, CIFAR_CONFIGS[attack.name]);
-  } else if (modelName === 'imagenet') {
-    await loadImagenetModel();
-    await loadedImagenetData;
-    await _generateAdv(imagenetModel, imagenetX[imagenetIdx], imagenetY[imagenetIdx], IMAGENET_CLASSES, IMAGENET_CONFIGS[attack.name]);
-  }
+  await loadCifarModel();
+  await loadingCifar;
+  await _generateAdv(cifarModel, cifarDataset[cifarIdx].xs, cifarDataset[cifarIdx].ys, CIFAR_CLASSES, CIFAR_CONFIGS[attack.name]);
 
   $('#latency-msg').style.display = 'none';
   $('#generate-adv').innerText = 'Generate';
@@ -351,20 +245,10 @@ async function generateDenoised() {
   $('#generate-denoised').disabled = true;
   $('#generate-denoised').innerText = 'Loading...';
 
-
-  let modelName = $('#select-model').value;
-  if (modelName === 'cifar') {
-    await loadCifarModel();
-    await loadingCifar;
-    await loadCifarDenoisedModel();
-    await _generateDenoised(cifarModel, cifarDenoisedModel, adv_img, cifarDataset[cifarIdx].ys, CIFAR_CLASSES);
-  } else if (modelName === 'imagenet') {
-    await loadImagenetModel();
-    await loadedImagenetData;
-    await loadImagenetDenoisedModel();
-    await _generateDenoised(imagenetModel, imagenetDenoisedModel, adv_img, imagenetY[imagenetIdx], IMAGENET_CLASSES);
-  }
-
+  await loadCifarModel();
+  await loadingCifar;
+  await loadCifarDenoisedModel();
+  await _generateDenoised(cifarModel, cifarDenoisedModel, adv_img, cifarDataset[cifarIdx].ys, CIFAR_CLASSES);
   $('#latency-denoised-msg').style.display = 'none';
   $('#generate-denoised').innerText = 'Generate';
   $('#predict-denoised').innerText = 'Run Neural Network';
@@ -503,12 +387,7 @@ async function resetAttack() {
   // $('#adversarial-image-overlay').style.display = 'block';
   // $('#adversarial-canvas-overlay').style.display = 'block';
   // $('#adversarial-prediction-overlay').style.display = 'block';
-
-  if ($('#select-model').value === 'gtsrb' || $('#select-model').value === 'imagenet') {
-    $('#latency-msg').style.display = 'block';
-  } else {
-    $('#latency-msg').style.display = 'none';
-  }
+  $('#latency-msg').style.display = 'none';
 }
 
 
@@ -542,17 +421,10 @@ async function resetAttack() {
  */
 function resetAvailableAttacks() {
   const CIFAR_TARGETS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-  const IMAGENET_TARGETS = [934, 413, 151];
 
-  let modelName = $('#select-model').value;
-  if (modelName === 'cifar') {
-    let originalLbl = cifarDataset[cifarIdx].ys.argMax(1).dataSync()[0];
-    _resetAvailableAttacks(true, originalLbl, CIFAR_TARGETS, CIFAR_CLASSES);
-   }
-  else if (modelName === 'imagenet') {
-    let originalLbl = imagenetYLbls[imagenetIdx];
-    _resetAvailableAttacks(false, originalLbl, IMAGENET_TARGETS, IMAGENET_CLASSES);
-  }
+  let originalLbl = cifarDataset[cifarIdx].ys.argMax(1).dataSync()[0];
+  _resetAvailableAttacks(true, originalLbl, CIFAR_TARGETS, CIFAR_CLASSES);
+
 
   function _resetAvailableAttacks(jsma, originalLbl, TARGETS, CLASS_NAMES) {
     let modelName = $('#select-model').value;
@@ -715,15 +587,6 @@ async function showNextCifar() {
   await showCifar();
 }
 
-let imagenetIdx = 0;
-async function showImagenet() {
-  await loadingImagenetX;
-  await drawImg(imagenetX[imagenetIdx], 'original');
-}
-async function showNextImagenet() {
-  imagenetIdx = (imagenetIdx + 1) % imagenetX.length;
-  await showImagenet();
-}
 
 async function drawImg(img, element) {
   // Draw image
