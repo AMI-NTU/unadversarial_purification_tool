@@ -379,7 +379,6 @@ function resetOnNewImage() {
   $('#prediction-status').style.marginBottom = '9px';
   resetAttack();
   resetAvailableAttacks();
-  resetDenoised();
 }
 
 /**
@@ -403,6 +402,7 @@ async function resetAttack() {
   // $('#adversarial-canvas-overlay').style.display = 'block';
   // $('#adversarial-prediction-overlay').style.display = 'block';
   $('#latency-msg').style.display = 'none';
+  resetDenoised();
 }
 
 
