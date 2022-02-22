@@ -33,6 +33,7 @@ const CIFAR_CONFIGS = {
   'cw': {c: 1, λ: 0.05}  // Tried to minimize distortion, but not sure it worked
 };
 
+
 /************************************************************************
 * Load Datasets
 ************************************************************************/
@@ -80,6 +81,7 @@ async function loadCifarDenoisedModel() {
 }
 
 
+
 /************************************************************************
 * Attach Event Handlers
 ************************************************************************/
@@ -88,13 +90,12 @@ async function loadCifarDenoisedModel() {
 window.addEventListener('load', showImage);
 window.addEventListener('load', resetAvailableAttacks);
 window.addEventListener('load', showBanners);
-window.addEventListener('load', removeLeftOverlay);
 
 // Model selection dropdown
-// $('#select-model').addEventListener('change', showImage);
-// $('#select-model').addEventListener('change', resetOnNewImage);
-// $('#select-model').addEventListener('change', resetAttack);
-// $('#select-model').addEventListener('change', removeLeftOverlay);
+$('#select-model').addEventListener('change', showImage);
+$('#select-model').addEventListener('change', resetOnNewImage);
+$('#select-model').addEventListener('change', resetAttack);
+$('#select-model').addEventListener('change', removeLeftOverlay);
 
 // Next image button
 $('#next-image').addEventListener('click', showNextImage);
@@ -144,14 +145,16 @@ $('#view-denoised').addEventListener('click', viewDenoised);
  * Renders the next image from the sample dataset in the original canvas
  */
 function showNextImage() {
-  showNextCifar();
+  let modelName = $('#select-model').value;
+  if (modelName === 'cifar') { showNextCifar(); }
 }
 
 /**
  * Renders the current image from the sample dataset in the original canvas
  */
 function showImage() {
-  showCifar();
+  let modelName = $('#select-model').value;
+  if (modelName === 'cifar') { showCifar(); }
 }
 
 /**
@@ -161,10 +164,13 @@ async function predict() {
   $('#predict-original').disabled = true;
   $('#predict-original').innerText = 'Loading...';
 
-  await loadCifarModel();
-  await loadingCifar;
-  let lblIdx = cifarDataset[cifarIdx].ys.argMax(1).dataSync()[0];
-  _predict(cifarModel, cifarDataset[cifarIdx].xs, lblIdx, CIFAR_CLASSES);
+  let modelName = $('#select-model').value;
+  if (modelName === 'cifar') {
+    await loadCifarModel();
+    await loadingCifar;
+    let lblIdx = cifarDataset[cifarIdx].ys.argMax(1).dataSync()[0];
+    _predict(cifarModel, cifarDataset[cifarIdx].xs, lblIdx, CIFAR_CLASSES);
+  }
 
   $('#predict-original').innerText = 'Run Neural Network';
 
@@ -200,10 +206,13 @@ async function generateAdv() {
     case 'cw': attack = cw; break;
   }
 
+  let modelName = $('#select-model').value;
   let targetLblIdx = parseInt($('#select-target').value);
-  await loadCifarModel();
-  await loadingCifar;
-  await _generateAdv(cifarModel, cifarDataset[cifarIdx].xs, cifarDataset[cifarIdx].ys, CIFAR_CLASSES, CIFAR_CONFIGS[attack.name]);
+  if (modelName === 'cifar') {
+    await loadCifarModel();
+    await loadingCifar;
+    await _generateAdv(cifarModel, cifarDataset[cifarIdx].xs, cifarDataset[cifarIdx].ys, CIFAR_CLASSES, CIFAR_CONFIGS[attack.name]);
+  }
 
   $('#latency-msg').style.display = 'none';
   $('#generate-adv').innerText = 'Generate';
@@ -246,10 +255,15 @@ async function generateDenoised() {
   $('#generate-denoised').disabled = true;
   $('#generate-denoised').innerText = 'Loading...';
 
-  await loadCifarModel();
-  await loadingCifar;
-  await loadCifarDenoisedModel();
-  await _generateDenoised(cifarModel, cifarDenoisedModel, adv_img, cifarDataset[cifarIdx].ys, CIFAR_CLASSES);
+
+  let modelName = $('#select-model').value;
+  if (modelName === 'cifar') {
+    await loadCifarModel();
+    await loadingCifar;
+    await loadCifarDenoisedModel();
+    await _generateDenoised(cifarModel, cifarDenoisedModel, adv_img, cifarDataset[cifarIdx].ys, CIFAR_CLASSES);
+  }
+
   $('#latency-denoised-msg').style.display = 'none';
   $('#generate-denoised').innerText = 'Generate';
   $('#predict-denoised').innerText = 'Run Neural Network';
@@ -365,6 +379,7 @@ function resetOnNewImage() {
   $('#prediction-status').style.marginBottom = '9px';
   resetAttack();
   resetAvailableAttacks();
+  resetDenoised();
 }
 
 /**
@@ -388,7 +403,6 @@ async function resetAttack() {
   // $('#adversarial-canvas-overlay').style.display = 'block';
   // $('#adversarial-prediction-overlay').style.display = 'block';
   $('#latency-msg').style.display = 'none';
-  resetDenoised();
 }
 
 
@@ -423,9 +437,11 @@ async function resetAttack() {
 function resetAvailableAttacks() {
   const CIFAR_TARGETS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-  let originalLbl = cifarDataset[cifarIdx].ys.argMax(1).dataSync()[0];
-  _resetAvailableAttacks(true, originalLbl, CIFAR_TARGETS, CIFAR_CLASSES);
-
+  let modelName = $('#select-model').value;
+  if (modelName === 'cifar') {
+    let originalLbl = cifarDataset[cifarIdx].ys.argMax(1).dataSync()[0];
+    _resetAvailableAttacks(true, originalLbl, CIFAR_TARGETS, CIFAR_CLASSES);
+   }
 
   function _resetAvailableAttacks(jsma, originalLbl, TARGETS, CLASS_NAMES) {
     let modelName = $('#select-model').value;
@@ -587,7 +603,6 @@ async function showNextCifar() {
   cifarIdx = (cifarIdx + 1) % cifarDataset.length;
   await showCifar();
 }
-
 
 async function drawImg(img, element) {
   // Draw image
