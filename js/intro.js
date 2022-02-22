@@ -88,12 +88,13 @@ async function loadCifarDenoisedModel() {
 window.addEventListener('load', showImage);
 window.addEventListener('load', resetAvailableAttacks);
 window.addEventListener('load', showBanners);
+window.addEventListener('load', removeLeftOverlay);
 
 // Model selection dropdown
-$('#select-model').addEventListener('change', showImage);
-$('#select-model').addEventListener('change', resetOnNewImage);
-$('#select-model').addEventListener('change', resetAttack);
-$('#select-model').addEventListener('change', removeLeftOverlay);
+// $('#select-model').addEventListener('change', showImage);
+// $('#select-model').addEventListener('change', resetOnNewImage);
+// $('#select-model').addEventListener('change', resetAttack);
+// $('#select-model').addEventListener('change', removeLeftOverlay);
 
 // Next image button
 $('#next-image').addEventListener('click', showNextImage);
@@ -364,7 +365,6 @@ function resetOnNewImage() {
   $('#prediction-status').style.marginBottom = '9px';
   resetAttack();
   resetAvailableAttacks();
-  resetDenoised();
 }
 
 /**
@@ -388,6 +388,7 @@ async function resetAttack() {
   // $('#adversarial-canvas-overlay').style.display = 'block';
   // $('#adversarial-prediction-overlay').style.display = 'block';
   $('#latency-msg').style.display = 'none';
+  resetDenoised();
 }
 
 
