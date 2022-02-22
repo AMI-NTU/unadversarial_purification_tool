@@ -500,9 +500,9 @@ async function resetAttack() {
   await drawImg(tf.ones([1, 224, 224, 1]), 'adversarial-noise');
   $('#adversarial').style.display = 'block';
   $('#adversarial-noise').style.display = 'none';
-  $('#adversarial-image-overlay').style.display = 'block';
-  $('#adversarial-canvas-overlay').style.display = 'block';
-  $('#adversarial-prediction-overlay').style.display = 'block';
+  // $('#adversarial-image-overlay').style.display = 'block';
+  // $('#adversarial-canvas-overlay').style.display = 'block';
+  // $('#adversarial-prediction-overlay').style.display = 'block';
 
   if ($('#select-model').value === 'gtsrb' || $('#select-model').value === 'imagenet') {
     $('#latency-msg').style.display = 'block';
@@ -525,9 +525,9 @@ async function resetAttack() {
   $('#prediction-denoised-status').innerHTML = '';
   $('#prediction-denoised-status').className = '';
   $('#prediction-denoised-status').style.marginBottom = '9px';
-  $('#denoised-image-overlay').style.display = 'block';
-  $('#denoised-canvas-overlay').style.display = 'block';
-  $('#denoised-prediction-overlay').style.display = 'block';
+  // $('#denoised-image-overlay').style.display = 'block';
+  // $('#denoised-canvas-overlay').style.display = 'block';
+  // $('#denoised-prediction-overlay').style.display = 'block';
 
   await drawImg(tf.ones([1, 224, 224, 1]), 'denoised');
   await drawImg(tf.ones([1, 224, 224, 1]), 'masked');
