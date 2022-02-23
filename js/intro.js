@@ -90,6 +90,7 @@ async function loadCifarDenoisedModel() {
 window.addEventListener('load', showImage);
 window.addEventListener('load', resetAvailableAttacks);
 window.addEventListener('load', showBanners);
+window.addEventListener('load', resetAttack);
 
 // Model selection dropdown
 $('#select-model').addEventListener('change', showImage);

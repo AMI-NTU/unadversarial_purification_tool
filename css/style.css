@@ -342,7 +342,9 @@ select:focus {
 
 #original,
 #adversarial,
-#adversarial-noise {
+#adversarial-noise,
+#masked,
+#denoised {
   margin-right: auto;
   margin-left: auto;
   margin-bottom: 20px;
@@ -350,6 +352,10 @@ select:focus {
 }
 
 #adversarial-noise {
+  display: none;
+}
+
+#masked {
   display: none;
 }
 
